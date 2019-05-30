@@ -1,0 +1,118 @@
+﻿@model HomePageModel
+
+@{
+    ViewData["Title"] = "Products Search";
+}
+
+<style>
+    .products-container {
+        display: grid;
+        grid-template-columns: 0.35fr auto;
+    }
+
+    .product-details-container {
+        display: grid;
+        grid-template-columns: 0.5fr 0.5fr;
+    }
+</style>
+
+<div class="products-container">
+    <aside>
+        <ul>
+            @foreach (var facet in Model.SearchResult.Facets)
+            {
+                <li>
+                    @facet.FriendlyName
+                    <ul>
+                        @foreach (var facetValue in facet)
+                        {
+                            @if (Model.ActiveFacetFilters.Any(x => x.Key == facet.Name && x.Value == facetValue.value))
+                            {
+                                <li>@facetValue.friendlyValue</li>
+                            }
+                            else
+                            {
+                                <li onclick="applyFacet('@(facet.Name+"="+facetValue.value)')">@facetValue.friendlyValue</li>
+                            }
+
+                        }
+                    </ul>
+                </li>
+            }
+        </ul>
+    </aside>
+
+    <div>
+        <form onsubmit="return onFilterSubmit();">
+            <label for="filterText">Filter:</label>
+            <input id="filterInput" type="text" name="filterText" value="@Model.FilterText" />
+        </form>
+
+        <h2>Found @Model.SearchResult.ResultsCount products. <small>Showing @Model.SearchResult.ProductHits.Count() products.</small></h2>
+        <ul>
+            @foreach (var productHit in Model.SearchResult.ProductHits)
+            {
+                <li>@productHit.Product.ProductID - @productHit.Product.Name <br/>
+                    <div class="product-details-container">
+                        <div>
+                            <small>Color: <em>@productHit.Product.Color</em></small> <br />
+                            <small>Size: <em>@productHit.Product.Size @productHit.Product.SizeUnitMeasureCode</em></small> <br />
+                        </div>
+                        <div>
+                            <small>Style: <em>@productHit.Product.Style</em></small> <br />
+                            <small>Class: <em>@productHit.Product.Class</em></small>
+                        </div>
+                    </div>
+                    @if(productHit.HitHighlightsHtml?.Any() ?? false) 
+                    {
+                        <ul>
+                            @foreach (var highlightHtml in productHit.HitHighlightsHtml)
+                            {
+                                <li>@Html.Raw(highlightHtml)</li>
+                            }
+                        </ul>
+                    }
+                </li>
+            }
+        </ul>
+    </div>
+</div>
+
+@{
+    var facetsQuery = string.Join(",", Model.ActiveFacetFilters.Select(filter => string.Concat(filter.Key, "=", filter.Value)).ToArray());
+    var filterText = Model.FilterText;
+}
+
+<form id="filterForm" method="get">
+    <input type="hidden" name="filterText" value="@filterText" />
+    <input type="hidden" name="facetsQuery" value="@facetsQuery" />
+</form>
+
+@section Scripts {
+<script>
+    function applyFacet(facetText) {
+        var filterForm = document.getElementById('filterForm');
+        var currentQuery = filterForm['facetsQuery'].value;
+        if (currentQuery) {
+            currentQuery += ',';
+        } else {
+            currentQuery = "";
+        }
+
+        currentQuery += facetText;
+        filterForm['facetsQuery'].value = currentQuery;
+
+        filterForm.submit();
+    }
+
+    function onFilterSubmit() {
+        debugger;
+        var filterInputValue = document.getElementById("filterInput").value;
+        var filterForm = document.getElementById('filterForm');
+        filterForm['filterText'].value = filterInputValue;
+
+        filterForm.submit();
+        return false;
+    }
+</script>
+}
